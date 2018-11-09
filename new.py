@@ -1,3 +1,5 @@
+# Brice Vadnais 2018 - See LICENSE
+
 # Trying to replicate RV32G in python
 
 # Creating 32 Registers with 0x0000 as their default value
