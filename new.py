@@ -1,4 +1,4 @@
-# Brice Vadnais 2018 - See LICENSE
+# Copyright 2018 Brice Vadnais - See LICENSE
 
 # Trying to replicate RV32G in python
 
