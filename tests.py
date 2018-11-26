@@ -1,1 +1,3 @@
-import "main_vm.py" as mvm
+import main_vm
+main_vm.run_all_tests()
+
