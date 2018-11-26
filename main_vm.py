@@ -1,6 +1,15 @@
 # Copyright 2018 Brice Vadnais - See LICENSE
 
-# Trying to replicate RV32G in python
+##############################################################
+#   Trying to replicate RV32G as a vm
+#   RV32G Consists of the Risc V extensions IMAFD
+##############################################################
+#   I := Integer
+#   M := Multiplication/Division
+#   A := Atomic
+#   F := Single Precision Floating Point
+#   D := Double Precision Floating Point
+##############################################################
 
 # Creating 32 Registers with 0x0000 as their default value
 reg = [0] * 32
@@ -16,8 +25,6 @@ def init_r():
     for i in range(1, len(reg)):
         reg[i] = 67
 
-
-clearmem = init_r()
 
 
 def print_reg_to_hex(column_or_array):
@@ -79,7 +86,7 @@ def addi(imm_val, rs1):
 
 
 def test_addi():
-    clearmem
+    init_r()
     addi(100, 1)
     if reg[1] == 167:
         print("test_addi -- Passed")
@@ -101,7 +108,7 @@ def slti(imm_val, rs1, rd):
 
 
 def test_slti():
-    clearmem
+    init_r()
     slti(1, 1, 3)
     if reg[3] == 1:
         print("test_slti -- Failed")
@@ -212,7 +219,7 @@ def add(rs2, rs1, rd):
 
 
 def test_add():
-    clearmem
+    init_r()
     add(1, 2, 3)
     if reg[3] == 134:
         print("test_add -- Passed")
@@ -235,27 +242,33 @@ def sltu(rs2, rs1, rd):
     Note, SLTU rd, x0, rs2 sets rd to 1 if rs2 is not equal to 0
     otherwise sets rd to 0 (assembler pseudo-op SNEZ rd, rs)
     """
-    pass
+    # Not taking into account unsigned for now
+    if reg[rs1] < reg[rs2]:
+        red[rd] = 1
+    else:
+        reg[rd] = 0
 
 
 def reg_and(rs2, rs1, rd):
-    pass
+    reg[rd] = reg[rs2] & reg[rs1]
 
 
 def reg_or(rs2, rs1, rd):
-    pass
+    reg[rd] = reg[rs2] | reg[rs1]
 
 
 def reg_xor(rs2, rs1, rd):
-    pass
+    reg[rd] = reg[rs2] ^ reg[rs1]
 
 
 def sll(rs2, rs1, rd):
-    pass
+    # This is probably the wrong order of rs2 and rs1
+    reg[rd] = reg[rs2] << reg[rs1]
 
 
 def srl(rs2, rs1, rd):
-    pass
+    # This is probably the wrong order of rs2 and rs1
+    reg[rd] = reg[rs2] >> reg[rs1]
 
 
 def sub(rs2, rs1, rd):
@@ -268,6 +281,8 @@ def sub(rs2, rs1, rd):
 
 
 def sra(rs2, rs1, rd):
+    # reg[rd] = reg[rs2] >> reg[rs1]
+    # Has to look something like this but preserve the sign bits^^^
     pass
 
 
@@ -279,6 +294,9 @@ def nop():
 
 
 def run_all_tests():
+    # Need to write more tests and add it here or in other file
     test_add()
     test_addi()
     test_slti()
+
+
