@@ -1,11 +1,11 @@
 module CPU
   extend self
   
-    @@reg = [] of UInt32
+    @@reg : Array(UInt32) = [] of UInt32
     @@pc = 0x0000_u32
 
     def reg
-      @@reg = [0x0000_u32] * 32
+      @@reg
     end
  
     def pc
