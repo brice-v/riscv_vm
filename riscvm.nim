@@ -1,7 +1,12 @@
+# BRICE VADNAIS 2019 MIT LICENSE
+
+
+# Array of 32, 32bit registers
 var reg: array[0..31, uint32]
-
+# Array of 1024, 32bit memory locations
 var ram: array[0..1024, uint32]
-
+# Program Counter
+var pc = 0
 
 ################################################################
 #
@@ -9,7 +14,7 @@ var ram: array[0..1024, uint32]
 #
 ################################################################
 
-proc addi(imm_val: uint16, rs1: uint8) =
+proc add_i(imm_val: uint16, rs1: uint8) =
     ##
     ## Adds the sign extended 12 bit immediate to register rs1.
     ## Arithmetic overflow is ignored and the result is the
@@ -17,34 +22,46 @@ proc addi(imm_val: uint16, rs1: uint8) =
     ## 
     ## --ADDI rs, rs1, 0 is used to implement MV rd, rs1
     ##
+    reg[rs1] += imm_val
+    pc += 1
 
-proc slti(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc slt_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ## 
     ## Set less than immediate places the value 1 in register rd
     ## if register rs1 is less than the sign extended immediate
     ## when both are treated as signed numbers, else 0 is written
     ## to rd.
-    ## 
+    ##
+    if reg[rs1] < imm_val: reg[rd] = 1
+    else: reg[rd] = 0
+    pc += 1
 
-proc sltiu(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc sltu_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## Set less than immediate unsigned compares the value as
     ## unsigned numbers.
     ##
+    if reg[rs1] < imm_val: reg[rd] = 1
+    else: reg[rd] = 0
+    pc += 1
 
-proc andi(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc and_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## Bitwise AND on the register rs1 and the 12 bit sign
     ## extended immediate value and place result in rd
     ##
+    reg[rd] = imm_val & reg[rs1]
+    pc += 1
 
-proc ori(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc or_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## Bitwise OR on the register rs1 and the 12 bit sign
     ## extended immediate value and place result in rd
     ##
+    reg[rd] = imm_val or reg[rs1]
+    pc += 1
 
-proc xori(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc xor_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## Bitwise XORI on the register rs1 and the 12 bit sign
     ## extended immediate value and place result in rd
@@ -52,34 +69,44 @@ proc xori(imm_val: uint16, rs1: uint8, rd: uint8) =
     ## --XORI rd, rs1, -1 performs a bitwise logical inversion
     ## of register rs1 (NOT)
     ##
+    reg[rd] = imm_val xor reg[rs1]
+    pc += 1
 
-proc slli(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc sll_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## SLLI is a logical shift left (zeros are shifted into the
     ## lower bits)
     ##
+    reg[rd] = reg[rs1] << imm_val
+    pc += 1
 
-proc srli(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc srl_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## SRLI is a logical right shift (zeros are shifted into the
     ## upper bits)
     ##
+    reg[rd] = reg[rs1] >> imm_val
+    pc += 1
 
-proc srai(imm_val: uint16, rs1: uint8, rd: uint8) =
+proc sra_i(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## SRAI is an arithmetic right shift (the original sign bit
     ## is copied into the vacated upperbits)
     ##
+    reg[rd] = reg[rs1] >> imm_val
+    pc += 1
 
-proc lui(imm_val: uint16, rd: uint8):
+proc lu_i(imm_val: uint16, rd: uint8) = 
     ##
     ## Load Upper Immediate is used to build 32 bit constants
     ## and uses the U-type format. LUI places the U-Immediate
     ## value in the top 20 bits of the destination register rd,
     ## filling in the lowest 12 bits with zeros.
     ##
+    reg[rd] = imm_val << 12
+    pc += 1
 
-proc auipc():
+proc auipc(imm_val: uint16, rd: uint8) =
     ##
     ## Add Upper Immediate to pc is used to build pc relative
     ## address and uses the U-type format. AUIPC forms a 32 bit
@@ -87,6 +114,9 @@ proc auipc():
     ## 12 bits with zeros, adds this offset to the pc, then places
     ## the result in rd
     ##
+    reg[rd] = imm_val << 12
+    pc += 1
+
 
 
 ################################################################
@@ -97,69 +127,95 @@ proc auipc():
 
 
 
-proc add(rs2, rs1, rd) =
+proc add_r(rs2: uint8, rs1 : uint8, rd: uint8) =
     ##
     ## ADD performs addition ----------------------------------
     ## Overflows are ignored and the low 32 bits of results are
     ## written to the destination
     ##
+    reg[rd] = reg[rs1] + reg[rs2]
+    pc += 1
 
-
-proc slt(rs2, rs1, rd) =
+proc slt_r(rs2: uint8, rs1: uint8, rd : uint8) =
     ##
     ## Set rd to 1 if rs1 < rs2 0 otherwise
     ## Signed
     ##
+    if reg[rs1] < reg[rs2]: reg[rd] = 1
+    else: reg[rd] = 0
+    pc += 1
 
-
-
-proc sltu(rs2, rs1, rd) =
+proc sltu_r(rs2: uint8, rs1: uint8, rd : uint8) =
     ##
     ## Set rd to 1 if rs1 < rs2 0 otherwise
     ## Unsigned
     ## Note, SLTU rd, x0, rs2 sets rd to 1 if rs2 is not equal to 0
     ## otherwise sets rd to 0 (assembler pseudo-op SNEZ rd, rs)
     ##
+    if reg[rs1] < reg[rs2]: reg[rd] = 1
+    else: reg[rd] = 0
+    pc += 1
 
-
-proc reg_and(rs2, rs1, rd) =
+proc and_r(rs2: uint8, rs1: uint8, rd : uint8) =
+    ##
+    ## Bitwise AND 2 registers together
+    ##
     reg[rd] = reg[rs2] & reg[rs1]
+    pc += 1
 
 
-proc reg_or(rs2, rs1, rd) =
-    reg[rd] = reg[rs2] | reg[rs1]
+proc or_r(rs2: uint8, rs1: uint8, rd : uint8) =
+    ##
+    ## Bitwise OR 2 registers together
+    ##
+    reg[rd] = reg[rs2] or reg[rs1]
+    pc += 1
 
+proc xor_r(rs2: uint8, rs1: uint8, rd : uint8) =
+    ##
+    ## Bitwise XOR 2 registers together
+    ##
+    reg[rd] = reg[rs2] xor reg[rs1]
+    pc += 1
 
-proc reg_xor(rs2, rs1, rd) =
-    reg[rd] = reg[rs2] ^ reg[rs1]
-
-
-proc sll(rs2, rs1, rd) =
+proc sll_r(rs2: uint8, rs1: uint8, rd : uint8) =
+    ##
+    ## Bitwise Shift Left the value in rs2 by the
+    ## value in rs1
+    ##
     # This is probably the wrong order of rs2 and rs1
     reg[rd] = reg[rs2] << reg[rs1]
+    pc += 1
 
-
-proc srl(rs2, rs1, rd) =
+proc srl_r(rs2: uint8, rs1: uint8, rd : uint8) =
+    ##
+    ## Bitwise Shift right the value in rs2 by the
+    ## value in rs1
+    ##
     # This is probably the wrong order of rs2 and rs1
     reg[rd] = reg[rs2] >> reg[rs1]
+    pc += 1
 
-
-proc sub(rs2, rs1, rd) =
+proc sub_r(rs2: uint8, rs1: uint8, rd: uint8) =
     ##
     ## SUB performs Subtraction -------------------------------
     ## Overflows are ignored and the low 32 bits of results are
     ## written to the destination
     ##
+    reg[rd] = reg[rs2] - reg[rs1]
+    pc += 1
 
-proc sra(rs2, rs1, rd) =
+proc sra_r(rs2: uint8, rs1: uint8, rd: uint8) =
     # reg[rd] = reg[rs2] >> reg[rs1]
     # Has to look something like this but preserve the sign bits^^^
-
+    reg[rd] = reg[rs2] >> reg[rs1]
+    pc += 1
 
 proc nop() =
    ##
    ## No Operation: uses addi 0 with 0 to r0
    ##
+   pc += 1
 
 ################################################################
 #
@@ -176,7 +232,7 @@ proc jal(offset: uint32, rd: uint8) =
     ## see page 16 of riscv-spec-v2.2.pdf
 
 
-proc jalr(offset: uint32, rs1:uint8, rd:uint8) = 
+proc jalr(offset: uint32, rs1: uint8, rd: uint8) = 
     ## 
     ## The indirect jump instruction uses I encoding
     ## The target address is obtained by adding the 12 bit signed I 
@@ -346,7 +402,7 @@ proc fencei(imm_val: uint16, rs1: uint8, rd: uint8) =
 
 ## ##### ##### CSR INSTRUCTIONS ##### ##### ##
 
-proc csrrw(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrw(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## CSRRW (Atomic Read/Write CSR) atomically swaps
     ## values in the CSRs and integer registers
@@ -359,7 +415,7 @@ proc csrrw(imm_val:uint16, rs1: uint8, rd: uint8) =
     ## If rd=x0 then the instruction shall not read the CSR and shall
     ## not cause any of the side effects that might occur on a CSR read
 
-proc csrrs(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrs(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## CSRRS (Atomic Read and Set bits in CSR) reads the value of the
     ## CSR, 0 extends it to XLEN bits and writes it to rd
@@ -367,7 +423,7 @@ proc csrrs(imm_val:uint16, rs1: uint8, rd: uint8) =
     ## The initial value in rs1 is treated as a bit mask that specifies
     ## bit positions to be set in the CSR
 
-proc csrrc(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrc(imm_val: uint16, rs1: uint8, rd: uint8) =
     ##
     ## CSRRC (Atomic Read and Clear bits in CSR) reads the value of the 
     ## CSR, 0 extends it to XLEN bits and writes it to rd
@@ -388,11 +444,11 @@ proc csrrc(imm_val:uint16, rs1: uint8, rd: uint8) =
 ## not write to the CSR and shall not cause any of the side effects that might
 ## otherwise occurs
 
-proc csrrwi(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrwi(imm_val: uint16, rs1: uint8, rd: uint8) =
 
-proc csrrsi(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrsi(imm_val: uint16, rs1: uint8, rd: uint8) =
 
-proc csrrci(imm_val:uint16, rs1: uint8, rd: uint8) =
+proc csrrci(imm_val: uint16, rs1: uint8, rd: uint8) =
 
 
 ## ##### ##### TIMER AND COUNTERS INSTRUCTIONS ##### ##### ##
